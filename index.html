@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Player</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/0.19.2/axios.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/static/js/record.js"></script>
+    <script src="/static/js/libs/player.js"></script>
+    <script src="/static/js/libs/robot.js"></script>
+    <script src="/static/js/libs/db.js"></script>
+  </head>
+  <body>
+    <audio src="" id="player"></audio>
+    <audio src="" id="robot"></audio>
+    <script>
+      const DEVICE = 'client';
+      const socket = io();
+      socket.on(DEVICE, function (data) {
+        console.log(data);
+        if (data.cmd == 'say') {
+          robot.say(data.text);
+        } else if (data.cmd == 'init') {
+          player.stop();
+          player.clear();
+          player.push(data.songs);
+          _loaded = data.loaded;
+          player.play();
+        } else if (data.cmd == 'play') {
+          player.play();
+        } else if (data.cmd == 'pause') {
+          player.pause();
+        } else if (data.cmd == 'next') {
+          player.next();
+        } else if (data.cmd == 'last') {
+          player.last();
+        } else if (data.cmd == 'push') {
+          player.push(data.songs);
+          _loaded = data.loaded;
+        } else if (data.cmd == 'stop') {
+          player.stop();
+        } else if (data.cmd == 'volumeUp') {
+          player.volumeUp();
+        } else if (data.cmd == 'volumeDown') {
+          player.volumeDown();
+        } else if (data.cmd == 'hotword') {
+          robot.wakeup();
+        } else if (data.cmd == 'silence') {
+          robot.stop_listen();
+        }
+      });
+    </script>
+
+    <script>
+      let db = new DB('robot', 1);
+      let robot = new Robot(
+        document.querySelector('#robot'),
+        document.querySelector('#player')
+      );
+    </script>
+
+    <script>
+      let now = new Date();
+      let timer = null;
+      void (function clock() {
+        timer = setTimeout(async () => {
+          now = new Date();
+          let crontabs = await db.readAll('crontab');
+          crontabs = crontabs.filter((crontab) => crontab.state == 'on');
+          crontabs.forEach(async crontab => {
+            let tm = new Date(crontab.time);
+            if(now.getFullYear() == tm.getFullYear() && now.getMonth() == tm.getMonth() && now.getDate() == tm.getDate() && now.getHours() == tm.getHours() && now.getMinutes() == tm.getMinutes() && now.getSeconds() == tm.getSeconds()) {
+              crontab.state = 'off';
+              await db.put('crontab', crontab);
+              if(crontab.type == 'clock') {
+                robot.play('/static/sounds/alarm.mp3');
+              }else if(crontab.type == 'reminder') {
+                robot.say(`现在是${now.getMonth()+1}月${now.getDate()}日${now.getHours()}点${now.getMinutes()}分，该${crontab.content}了`);
+              }
+            }
+          });
+          clock();
+        }, 1000);
+      })();
+    </script>
+    <script>
+      
+
+    </script>
+  </body>
+</html>

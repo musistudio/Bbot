@@ -1,0 +1,15 @@
+.album{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+}
+img{
+    max-width: 100vw;
+    max-height: 100vh;
+    overflow: hidden;
+    display: none;
+}
+.active{
+    display: block;
+}
